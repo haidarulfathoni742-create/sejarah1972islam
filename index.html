@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LKPD Sejarah Kelas 10 – Analisis Kerajaan Islam</title>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<style>
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  textarea,input,select{transition:box-shadow .15s,border-color .15s}
+  #printView{display:none}
+  @media print{
+    #app{display:none!important}
+    #printView{display:block!important;color:#000}
+    body{background:#fff!important}
+    .pb{page-break-inside:avoid}
+  }
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+<div id="app" class="max-w-3xl mx-auto px-3 sm:px-6 py-5">
+  <header class="rounded-2xl bg-gradient-to-br from-emerald-700 to-indigo-700 text-white p-5 sm:p-7 shadow-lg">
+    <p class="text-xs uppercase tracking-widest text-emerald-100">LKPD Mandiri · Sejarah Indonesia · Kelas 10</p>
+    <h1 class="text-2xl sm:text-3xl font-bold mt-1">Analisis Kerajaan Islam di Indonesia</h1>
+    <p class="text-sm text-emerald-50 mt-2">Isi setiap bagian dengan analisismu sendiri. Jawaban tersimpan otomatis di perangkat ini.</p>
+    <div class="mt-4 h-2 bg-white/25 rounded-full overflow-hidden"><div id="bar" class="h-full bg-amber-300 transition-all duration-300" style="width:0"></div></div>
+    <p class="text-xs mt-1 text-emerald-100 flex justify-between"><span id="stepName"></span><span id="saved" class="opacity-0 transition-opacity">✓ Tersimpan</span></p>
+  </header>
+  <nav id="stepper" class="flex gap-1.5 overflow-x-auto py-3"></nav>
+  <main id="view" class="bg-white rounded-2xl shadow p-4 sm:p-6"></main>
+  <div id="nav" class="flex justify-between gap-3 mt-4"></div>
+  <p class="text-center text-xs text-slate-400 mt-6">Data hanya tersimpan di browser perangkatmu (localStorage).</p>
+</div>
+<div id="printView" class="p-6"></div>
+
+<script>
+const KEY="lkpd_sejarah10_v1";
+const KR=["Samudera Pasai","Demak","Mataram Islam","Gowa-Tallo","Ternate-Tidore"];
+const CORAK=["Pesisir / Maritim","Pedalaman / Agraris","Kepulauan Rempah","Selat / Jalur Dagang Strategis"];
+const STEPS=["Identitas","Geografis","Multidimensi","Keruntuhan","Refleksi","Hasil & Cetak"];
+
+/* Kata kunci per kerajaan: [lokasi, politik, ekonomi, budaya, internal, eksternal] */
+const K={
+"Samudera Pasai":["Aceh Utara, Selat Malaka, muara sungai, pelabuhan","Sultan Malik as-Saleh, kerajaan Islam pertama, Ibnu Battuta","Lada, emas, dirham emas, pelabuhan transit","Penyebaran Islam, pusat studi agama, mazhab Syafi’i","Perebutan takhta, pelemahan pemerintahan","Serangan Portugis 1521, persaingan dengan Malaka dan Aceh"],
+"Demak":["Pesisir utara Jawa, Bintoro, dekat Jepara dan Bergota","Raden Patah, Sultan Trenggana, Walisanga","Beras, pelabuhan, perdagangan antarpulau","Masjid Agung Demak, wayang, peran Walisanga","Perebutan takhta setelah Trenggana wafat 1546, Arya Penangsang","Pengaruh Portugis, pemindahan pusat ke Pajang"],
+"Mataram Islam":["Pedalaman Jawa, Kotagede, lembah subur, Gunung Merapi","Sutawijaya, Sultan Agung, serangan ke Batavia","Pertanian padi, sistem lungguh, hasil bumi","Kalender Jawa, Grebeg, wayang, seni keraton","Konflik suksesi, pemerintahan keras Amangkurat I","Campur tangan VOC, Perjanjian Giyanti 1755"],
+"Gowa-Tallo":["Sulawesi Selatan, Makassar, Somba Opu, jalur ke Maluku","Sultan Hasanuddin, ayam jantan dari timur, Tallo dan Gowa","Pelabuhan bebas, rempah transit, beras, perdagangan laut","Lontara, kapal pinisi, hukum adat Pangadakkang","Pertentangan dengan Bone (Arung Palakka)","VOC, blokade, Perjanjian Bongaya 1667"],
+"Ternate-Tidore":["Maluku Utara, kepulauan vulkanik, penghasil rempah","Sultan Baabullah, Uli Lima dan Uli Siwa, persaingan Ternate–Tidore","Cengkih, pala, monopoli, pelayaran Hongi","Perpaduan adat Maluku dan Islam, kesultanan, jejak kolonial","Rivalitas antarkesultanan, perebutan pengaruh","Portugis, Spanyol, VOC, politik adu domba"]
+};
+const KI={lokasi:0,politik:1,ekonomi:2,budaya:3,internal:4,eksternal:5};
+
+/* Bidang isian: id, judul, placeholder, pertanyaan pemandu */
+const FIELDS={
+corak:{t:"Corak wilayah kerajaan",hint:["Apakah pusat kerajaan di tepi laut/sungai besar atau di daratan subur?","Apakah wilayahnya dilalui jalur pelayaran internasional?","Corak mana yang paling dominan membentuk kehidupan masyarakatnya?"]},
+lokasi:{t:"Analisis lokasi",ph:"Jelaskan letak kerajaan dan pengaruhnya terhadap perkembangannya…",hint:["Di mana letak kerajaan (provinsi/pulau/selat)?","Bagaimana letak itu memudahkan perdagangan dan masuknya Islam?","Apa keuntungan dan kelemahan geografisnya?"]},
+politik:{t:"Politik & masa kejayaan",ph:"Siapa tokohnya, kapan puncak kejayaan, bagaimana sistem pemerintahannya…",hint:["Siapa pendiri dan raja terbesarnya?","Pada masa siapa kerajaan mencapai puncak?","Wilayah mana yang berhasil dikuasai atau dipengaruhi?"]},
+ekonomi:{t:"Ekonomi & komoditas",ph:"Jelaskan sumber penghidupan, komoditas utama, dan jalur dagangnya…",hint:["Komoditas apa yang paling laku?","Siapa pedagang yang datang dan dari mana?","Apakah ada mata uang, pajak, atau pelabuhan penting?"]},
+budaya:{t:"Akulturasi budaya",ph:"Berikan contoh percampuran budaya Islam dengan budaya lokal…",hint:["Sebutkan bangunan, seni, atau tradisi hasil perpaduan.","Unsur lokal apa yang dipertahankan?","Unsur Islam apa yang masuk?"]},
+internal:{t:"Faktor internal keruntuhan",ph:"Sebab keruntuhan dari dalam kerajaan sendiri…",hint:["Adakah perebutan takhta atau konflik keluarga?","Apakah pemimpin lemah atau pemerintahan tidak adil?","Adakah pemberontakan di dalam wilayah?"]},
+eksternal:{t:"Faktor eksternal keruntuhan",ph:"Sebab keruntuhan dari luar (kekuatan asing, persaingan)…",hint:["Kekuatan asing mana yang menyerang atau ikut campur?","Perjanjian apa yang melemahkan kerajaan?","Bagaimana persaingan dagang memengaruhinya?"]},
+refleksi:{t:"Refleksi diri",ph:"Pelajaran moral dan nilai apa yang bisa kamu ambil untukmu sebagai pelajar masa kini…",hint:["Nilai apa dari kerajaan ini yang patut dicontoh?","Kesalahan apa yang harus dihindari generasi sekarang?","Apa yang akan kamu lakukan setelah mempelajari ini?"]}
+};
+const PAGE=[null,["corak","lokasi"],["politik","ekonomi","budaya"],["internal","eksternal"],["refleksi"]];
+const SCORED=["corak","lokasi","politik","ekonomi","budaya","internal","eksternal","refleksi"];
+
+const blank={nama:"",kelas:"",kerajaan:"",corak:"",lokasi:"",politik:"",ekonomi:"",budaya:"",internal:"",eksternal:"",refleksi:"",step:0};
+let S={...blank};
+try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||"{}"))}catch(e){}
+let savedT;
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+  const el=document.getElementById("saved");el.style.opacity=1;clearTimeout(savedT);savedT=setTimeout(()=>el.style.opacity=0,900)}
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const wc=t=>t.trim()?t.trim().split(/\s+/).length:0;
+function sc(id){if(id==="corak")return S.corak?3:0;const n=wc(S[id]);return n===0?0:n<15?1:n<40?2:3}
+const LV=["Kosong","Kurang","Cukup","Lengkap"];
+const LC=["text-slate-400","text-rose-600","text-amber-600","text-emerald-600"];
+function total(){return Math.round(SCORED.reduce((a,i)=>a+sc(i),0)/(SCORED.length*3)*100)}
+function pred(p){return p>=85?"Sangat Baik":p>=70?"Baik":p>=50?"Cukup":"Perlu Diperbaiki"}
+
+const inp="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500";
+
+function hintBox(id){
+  const f=FIELDS[id];let kw="";
+  if(S.kerajaan&&KI[id]!==undefined)kw=`<p class="mt-2"><b>Kata kunci ${esc(S.kerajaan)}:</b> ${esc(K[S.kerajaan][KI[id]])}</p>`;
+  else if(KI[id]!==undefined)kw=`<p class="mt-2 text-indigo-500">Pilih kerajaan di langkah Identitas untuk melihat kata kunci khusus.</p>`;
+  return `<div id="h-${id}" class="hidden mt-2 rounded-xl bg-indigo-50 border border-indigo-200 p-3 text-sm text-indigo-900">
+    <p class="font-semibold">💡 Pertanyaan pemandu</p><ul class="list-disc ml-5 mt-1 space-y-0.5">${f.hint.map(h=>`<li>${h}</li>`).join("")}</ul>${kw}</div>`;
+}
+function head(id,no){
+  return `<div class="flex items-start justify-between gap-2"><label class="font-semibold text-slate-700">${no} ${FIELDS[id].t}</label>
+  <button data-hint="${id}" class="shrink-0 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700 hover:bg-indigo-200 px-3 py-1.5">💡 Bantuan Analisis</button></div>${hintBox(id)}`;
+}
+function textField(id,no){
+  const n=wc(S[id]),l=sc(id);
+  return `<section class="mb-6">${head(id,no)}
+  <textarea data-f="${id}" rows="5" placeholder="${esc(FIELDS[id].ph)}" class="${inp} mt-2">${esc(S[id])}</textarea>
+  <p class="text-xs mt-1 flex justify-between"><span id="wc-${id}" class="text-slate-500">${n} kata</span><span id="lv-${id}" class="font-medium ${LC[l]}">${LV[l]}</span></p></section>`;
+}
+
+const TITLES=[
+ ["Identitas Siswa","Lengkapi data dirimu dan pilih kerajaan yang akan dianalisis."],
+ ["Bagian 1 · Identifikasi Geografis","Kenali letak dan corak wilayah kerajaan."],
+ ["Bagian 2 · Analisis Multidimensi","Telaah politik, ekonomi, dan budaya kerajaan."],
+ ["Bagian 3 · Analisis Keruntuhan","Kenapa kerajaan ini melemah dan runtuh?"],
+ ["Bagian 4 · Refleksi Diri","Hubungkan sejarah dengan kehidupanmu."]
+];
+
+function render(){
+  const s=S.step;
+  $("bar").style.width=(s/5*100)+"%";
+  $("stepName").textContent=`Langkah ${s+1} dari 6 · ${STEPS[s]}`;
+  $("stepper").innerHTML=STEPS.map((n,i)=>`<button data-go="${i}" class="shrink-0 text-xs sm:text-sm rounded-full px-3 py-1.5 border ${i===s?"bg-emerald-600 text-white border-emerald-600":"bg-white text-slate-600 border-slate-300 hover:border-emerald-400"}">${i+1}. ${n}</button>`).join("");
+  let h="";
+  if(s<5)h+=`<h2 class="text-xl font-bold text-slate-800">${TITLES[s][0]}</h2><p class="text-sm text-slate-500 mb-5">${TITLES[s][1]}</p>`;
+  if(s===0){
+    h+=`<div class="space-y-4">
+    <div><label class="font-semibold text-sm">Nama Lengkap</label><input data-f="nama" value="${esc(S.nama)}" class="${inp} mt-1" placeholder="Contoh: Siti Aisyah"></div>
+    <div><label class="font-semibold text-sm">Kelas / No. Absen</label><input data-f="kelas" value="${esc(S.kelas)}" class="${inp} mt-1" placeholder="Contoh: X-3 / 24"></div>
+    <div><label class="font-semibold text-sm">Kerajaan yang Dianalisis</label>
+    <select data-f="kerajaan" class="${inp} mt-1"><option value="">— Pilih kerajaan —</option>${KR.map(k=>`<option ${S.kerajaan===k?"selected":""}>${k}</option>`).join("")}</select></div>
+    <div class="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-900">Tips: klik tombol <b>💡 Bantuan Analisis</b> di tiap nomor untuk melihat pertanyaan pemandu dan kata kunci.</div></div>`;
+  }
+  if(s===1){
+    h+=`<section class="mb-6">${head("corak","1.1")}<div class="grid sm:grid-cols-2 gap-2 mt-2">${CORAK.map(c=>`<label class="flex items-center gap-2 rounded-xl border p-3 cursor-pointer hover:bg-emerald-50 ${S.corak===c?"border-emerald-500 bg-emerald-50":"border-slate-300"}"><input type="radio" name="corak" data-f="corak" value="${c}" ${S.corak===c?"checked":""} class="accent-emerald-600"><span class="text-sm">${c}</span></label>`).join("")}</div></section>`;
+    h+=textField("lokasi","1.2");
+  }
+  if(s===2)h+=textField("politik","2.1")+textField("ekonomi","2.2")+textField("budaya","2.3");
+  if(s===3)h+=textField("internal","3.1")+textField("eksternal","3.2");
+  if(s===4)h+=textField("refleksi","4.1");
+  if(s===5)h+=resultView();
+  $("view").innerHTML=h;
+  $("nav").innerHTML=`<button data-nav="-1" class="rounded-xl px-5 py-2.5 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 ${s===0?"invisible":""}">← Sebelumnya</button>
+  ${s<5?`<button data-nav="1" class="rounded-xl px-5 py-2.5 bg-emerald-600 text-white font-medium hover:bg-emerald-700 shadow">Selanjutnya →</button>`:""}`;
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function resultView(){
+  const p=total(),done=!!(S.nama&&S.kelas&&S.kerajaan);
+  const col=p>=70?"text-emerald-600":p>=50?"text-amber-600":"text-rose-600";
+  const rows=SCORED.map(i=>{const l=sc(i);return `<tr class="border-t"><td class="py-2 pr-2">${FIELDS[i].t}</td><td class="text-center">${i==="corak"?"–":wc(S[i])}</td><td class="text-right font-medium ${LC[l]}">${LV[l]} (${l}/3)</td></tr>`}).join("");
+  return `<h2 class="text-xl font-bold">Rubrik Penilaian Mandiri</h2>
+  <p class="text-sm text-slate-500 mb-4">Skor dihitung otomatis dari kelengkapan jawabanmu (jumlah kata per bidang). Ini penilaian awal, bukan nilai akhir dari guru.</p>
+  <div class="rounded-2xl bg-slate-50 border p-5 text-center"><p class="text-5xl font-extrabold ${col}">${p}</p><p class="font-semibold mt-1">${pred(p)}</p>
+  <div class="h-2.5 bg-slate-200 rounded-full mt-3 overflow-hidden"><div class="h-full bg-emerald-500" style="width:${p}%"></div></div></div>
+  <table class="w-full text-sm mt-4"><thead><tr class="text-left text-slate-500"><th class="pb-1">Bidang</th><th class="text-center">Kata</th><th class="text-right">Tingkat</th></tr></thead><tbody>${rows}</tbody></table>
+  <p class="text-xs text-slate-500 mt-3">Kriteria: Kosong = 0 · Kurang (1–14 kata) = 1 · Cukup (15–39 kata) = 2 · Lengkap (≥40 kata) = 3</p>
+  ${done?"":`<p class="mt-4 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">⚠ Identitas belum lengkap. <button data-go="0" class="underline font-medium">Lengkapi sekarang</button></p>`}
+  <div class="grid sm:grid-cols-2 gap-3 mt-5">
+    <button data-act="print" class="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 shadow">🖨️ Cetak / Simpan sebagai PDF</button>
+    <button data-act="reset" class="rounded-xl bg-white border border-rose-300 text-rose-600 hover:bg-rose-50 font-medium py-3">Hapus semua jawaban</button></div>
+  <p class="text-xs text-slate-400 mt-2">Untuk PDF: pada jendela cetak, pilih tujuan “Simpan sebagai PDF”.</p>`;
+}
+
+function buildPrint(){
+  const p=total(),tgl=new Date().toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
+  const sec=(t,ids)=>`<h3 class="font-bold mt-5 mb-1 text-base border-b border-slate-400">${t}</h3>`+ids.map(i=>`<div class="pb mb-3"><p class="font-semibold text-sm">${FIELDS[i].t}</p>${i==="corak"?`<p class="text-sm">${esc(S.corak||"(belum dipilih)")}</p>`:`<p class="text-sm whitespace-pre-wrap">${esc(S[i]||"(belum diisi)")}</p>`}</div>`).join("");
+  $("printView").innerHTML=`<div class="text-center border-b-2 border-black pb-2"><h1 class="text-xl font-bold">LKPD MANDIRI SEJARAH KELAS 10</h1><p class="text-sm">Analisis Kerajaan Islam di Indonesia</p></div>
+  <table class="text-sm mt-3"><tr><td class="pr-4">Nama</td><td>: ${esc(S.nama||"-")}</td></tr><tr><td>Kelas/Absen</td><td>: ${esc(S.kelas||"-")}</td></tr><tr><td>Kerajaan</td><td>: ${esc(S.kerajaan||"-")}</td></tr><tr><td>Tanggal</td><td>: ${tgl}</td></tr></table>
+  ${sec("Bagian 1 · Identifikasi Geografis",["corak","lokasi"])}${sec("Bagian 2 · Analisis Multidimensi",["politik","ekonomi","budaya"])}${sec("Bagian 3 · Analisis Keruntuhan",["internal","eksternal"])}${sec("Bagian 4 · Refleksi Diri",["refleksi"])}
+  <h3 class="font-bold mt-5 mb-1 text-base border-b border-slate-400">Rubrik Penilaian Mandiri</h3>
+  <p class="text-sm">Skor otomatis: <b>${p}/100</b> (${pred(p)})</p>
+  <table class="text-sm w-full mt-1">${SCORED.map(i=>`<tr><td>${FIELDS[i].t}</td><td class="text-right">${LV[sc(i)]} (${sc(i)}/3)</td></tr>`).join("")}</table>
+  <div class="flex justify-between mt-10 text-sm pb"><div>Tanda tangan siswa<br><br><br>(${esc(S.nama||"..............")})</div><div class="text-right">Paraf / nilai guru<br><br><br>(..............)</div></div>`;
+}
+
+/* Event handling (delegasi) */
+document.addEventListener("input",e=>{
+  const id=e.target.dataset.f;if(!id)return;
+  S[id]=e.target.value;save();
+  if(wc!==undefined&&$("wc-"+id)){const l=sc(id);$("wc-"+id).textContent=wc(S[id])+" kata";const lv=$("lv-"+id);lv.textContent=LV[l];lv.className="font-medium "+LC[l]}
+});
+document.addEventListener("change",e=>{
+  if(e.target.name==="corak"){S.corak=e.target.value;save();render()}
+  if(e.target.dataset.f==="kerajaan"){S.kerajaan=e.target.value;save()}
+});
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.hint)$("h-"+b.dataset.hint).classList.toggle("hidden");
+  if(b.dataset.go!==undefined){S.step=+b.dataset.go;save();render()}
+  if(b.dataset.nav){
+    if(S.step===0&&b.dataset.nav==="1"&&!(S.nama.trim()&&S.kelas.trim()&&S.kerajaan)){alert("Lengkapi nama, kelas/absen, dan pilih kerajaan terlebih dahulu.");return}
+    S.step=Math.min(5,Math.max(0,S.step+ +b.dataset.nav));save();render();
+  }
+  if(b.dataset.act==="print"){buildPrint();setTimeout(()=>window.print(),100)}
+  if(b.dataset.act==="reset"&&confirm("Hapus semua jawaban? Tindakan ini tidak bisa dibatalkan.")){S={...blank};try{localStorage.removeItem(KEY)}catch(x){}render()}
+});
+render();
+</script>
+</body>
+</html>
